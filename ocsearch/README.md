@@ -28,8 +28,8 @@ Search and browse all OpenCode sessions across every project on your machine, wi
 ## Install
 
 ```bash
-cp ocsearch ~/.local/bin/
-chmod +x ~/.local/bin/ocsearch
+# Symlink (updates automatically with git pull)
+ln -sf "$(pwd)/ocsearch" ~/.local/bin/ocsearch
 ```
 
 Make sure `~/.local/bin` is in your `PATH`.
