@@ -2,6 +2,8 @@
 
 Display OpenCode usage stats: cost, tokens, agents, and models. Covers the last 7 days by default, today only, or a single session with its full delegation tree.
 
+![omo_stats default output](../ressources/omo_stats.png)
+
 ## Install
 
 ```bash
