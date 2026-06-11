@@ -12,7 +12,7 @@ import os
 import sqlite3
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 
 DB_PATH = os.environ.get("DB_PATH", os.path.expanduser("~/.local/share/opencode/opencode.db"))
 HOME = os.path.expanduser("~")
@@ -332,9 +332,6 @@ parser.add_argument("--session", metavar="ID", help="Show detail for a specific 
 
 def main():
     args = parser.parse_args()
-    if not os.path.exists(DB_PATH):
-        print(f"Database not found: {DB_PATH}", file=sys.stderr)
-        sys.exit(1)
     if args.session:
         cmd_session(args.session)
     elif args.today:
