@@ -173,10 +173,40 @@ done
 
 printf "\n--\n"
 if [ $config_fail -eq 0 ]; then
-  printf "Config valid: all %d %s models are accessible.\n\n" "$config_total" "$PROVIDER"
-  exit 0
+  printf "Config valid: all %d %s models are accessible.\n" "$config_total" "$PROVIDER"
 else
   printf "CONFIG ISSUES: %d/%d models broken or missing.\n" "$config_fail" "$config_total"
-  printf "Available models: opencode models %s\n\n" "$PROVIDER"
+  printf "Fix: edit %s\n" "$OMO_CONFIG"
+fi
+
+# --- Phase 4: Detect available but unused models ---
+
+printf "\n--\n"
+printf "Available models NOT referenced in config:\n\n"
+
+unused_count=0
+for model in "${ok_list[@]}"; do
+  in_config=0
+  for cm in "${config_models[@]}"; do
+    if [ "$cm" = "$model" ]; then
+      in_config=1
+      break
+    fi
+  done
+  if [ $in_config -eq 0 ]; then
+    printf "  %s\n" "${model#${PROVIDER}/}"
+    unused_count=$((unused_count + 1))
+  fi
+done
+
+if [ $unused_count -eq 0 ]; then
+  printf "  (none - all available models are referenced)\n"
+fi
+
+printf "\n"
+
+# Exit code based on config validity
+if [ $config_fail -gt 0 ]; then
   exit 1
 fi
+exit 0

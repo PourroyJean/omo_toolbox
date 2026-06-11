@@ -1,0 +1,299 @@
+{
+  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json",
+  "agents": {
+    "sisyphus": {
+      "model": "github-copilot/claude-opus-4.8",
+      "variant": "max",
+      "fallback_models": [
+        {
+          "model": "github-copilot/claude-opus-4.7",
+          "variant": "max"
+        },
+        {
+          "model": "github-copilot/gpt-5.5",
+          "variant": "medium"
+        }
+      ],
+      "comment": "Main orchestrator - opus 4.8 flagship"
+    },
+    "hephaestus": {
+      "model": "github-copilot/gpt-5.5",
+      "variant": "medium",
+      "fallback_models": [
+        {
+          "model": "github-copilot/claude-sonnet-4.6"
+        }
+      ],
+      "comment": "Deep autonomous worker - gpt-5.5 per docs"
+    },
+    "oracle": {
+      "model": "github-copilot/gpt-5.5",
+      "variant": "high",
+      "fallback_models": [
+        {
+          "model": "github-copilot/gemini-3.1-pro-preview",
+          "variant": "high"
+        },
+        {
+          "model": "github-copilot/claude-opus-4.8",
+          "variant": "max"
+        }
+      ],
+      "comment": "High-IQ consultant - gpt-5.5 high per docs"
+    },
+    "explore": {
+      "model": "github-copilot/gpt-5.4-mini",
+      "fallback_models": [
+        {
+          "model": "github-copilot/claude-haiku-4.5"
+        },
+        {
+          "model": "github-copilot/gpt-5-mini"
+        }
+      ],
+      "comment": "Quick contextual grep - fast mini model"
+    },
+    "librarian": {
+      "model": "github-copilot/gpt-5.4-mini",
+      "fallback_models": [
+        {
+          "model": "github-copilot/claude-haiku-4.5"
+        },
+        {
+          "model": "github-copilot/gpt-5-mini"
+        }
+      ],
+      "comment": "Reference grep - fast mini model, same as explore"
+    },
+    "multimodal-looker": {
+      "model": "github-copilot/gpt-5.5",
+      "variant": "medium",
+      "fallback_models": [
+        {
+          "model": "github-copilot/gpt-5.4-mini"
+        }
+      ],
+      "comment": "Vision tasks - gpt-5.5 per docs"
+    },
+    "prometheus": {
+      "model": "github-copilot/claude-opus-4.8",
+      "variant": "max",
+      "fallback_models": [
+        {
+          "model": "github-copilot/claude-opus-4.7",
+          "variant": "max"
+        },
+        {
+          "model": "github-copilot/gpt-5.5",
+          "variant": "high"
+        },
+        {
+          "model": "github-copilot/gemini-3.1-pro-preview",
+          "variant": "high"
+        }
+      ],
+      "comment": "Strategic planner - opus 4.8 flagship"
+    },
+    "metis": {
+      "model": "github-copilot/claude-sonnet-4.6",
+      "fallback_models": [
+        {
+          "model": "github-copilot/claude-opus-4.8",
+          "variant": "max"
+        },
+        {
+          "model": "github-copilot/gpt-5.5",
+          "variant": "high"
+        }
+      ],
+      "comment": "Pre-planning consultant - sonnet per docs"
+    },
+    "momus": {
+      "model": "github-copilot/gpt-5.5",
+      "variant": "xhigh",
+      "fallback_models": [
+        {
+          "model": "github-copilot/claude-opus-4.8",
+          "variant": "max"
+        },
+        {
+          "model": "github-copilot/gemini-3.1-pro-preview",
+          "variant": "high"
+        }
+      ],
+      "comment": "Plan critic - gpt-5.5 xhigh per docs"
+    },
+    "atlas": {
+      "model": "github-copilot/claude-sonnet-4.6",
+      "fallback_models": [
+        {
+          "model": "github-copilot/gpt-5.5",
+          "variant": "medium"
+        }
+      ],
+      "comment": "Test runner and validator - sonnet per docs"
+    },
+    "sisyphus-junior": {
+      "model": "github-copilot/claude-sonnet-4.6",
+      "fallback_models": [
+        {
+          "model": "github-copilot/gpt-5.5",
+          "variant": "medium"
+        }
+      ],
+      "comment": "Focused task executor - sonnet per docs"
+    }
+  },
+  "categories": {
+    "visual-engineering": {
+      "model": "github-copilot/gemini-3.1-pro-preview",
+      "variant": "high",
+      "fallback_models": [
+        {
+          "model": "github-copilot/claude-opus-4.8",
+          "variant": "max"
+        }
+      ],
+      "comment": "Frontend, UI/UX - Gemini dominates visual per docs"
+    },
+    "ultrabrain": {
+      "model": "github-copilot/gpt-5.5",
+      "variant": "xhigh",
+      "fallback_models": [
+        {
+          "model": "github-copilot/gemini-3.1-pro-preview",
+          "variant": "high"
+        },
+        {
+          "model": "github-copilot/claude-opus-4.8",
+          "variant": "max"
+        }
+      ],
+      "comment": "Hard logic-heavy problems - gpt-5.5 xhigh per docs"
+    },
+    "deep": {
+      "model": "github-copilot/gpt-5.5",
+      "variant": "medium",
+      "fallback_models": [
+        {
+          "model": "github-copilot/claude-opus-4.8",
+          "variant": "max"
+        },
+        {
+          "model": "github-copilot/gemini-3.1-pro-preview",
+          "variant": "high"
+        }
+      ],
+      "comment": "Autonomous deep problem-solving - gpt-5.5 per docs"
+    },
+    "artistry": {
+      "model": "github-copilot/gemini-3.1-pro-preview",
+      "variant": "high",
+      "fallback_models": [
+        {
+          "model": "github-copilot/claude-opus-4.8",
+          "variant": "max"
+        },
+        {
+          "model": "github-copilot/gpt-5.5"
+        }
+      ],
+      "comment": "Creative/unconventional - Gemini per docs"
+    },
+    "quick": {
+      "model": "github-copilot/gpt-5.4-mini",
+      "fallback_models": [
+        {
+          "model": "github-copilot/claude-haiku-4.5"
+        },
+        {
+          "model": "github-copilot/gemini-3-flash-preview"
+        }
+      ],
+      "comment": "Trivial single-file tasks - gpt-5.4-mini per docs"
+    },
+    "unspecified-low": {
+      "model": "github-copilot/claude-sonnet-4.6",
+      "fallback_models": [
+        {
+          "model": "github-copilot/gpt-5.5",
+          "variant": "medium"
+        },
+        {
+          "model": "github-copilot/gemini-3-flash-preview"
+        }
+      ],
+      "comment": "Low-effort misc - sonnet per docs"
+    },
+    "unspecified-high": {
+      "model": "github-copilot/claude-opus-4.8",
+      "variant": "max",
+      "fallback_models": [
+        {
+          "model": "github-copilot/gpt-5.5",
+          "variant": "high"
+        },
+        {
+          "model": "github-copilot/claude-opus-4.7",
+          "variant": "max"
+        }
+      ],
+      "comment": "High-effort misc - opus per docs"
+    },
+    "writing": {
+      "model": "github-copilot/gemini-3.5-flash",
+      "fallback_models": [
+        {
+          "model": "github-copilot/claude-sonnet-4.6"
+        }
+      ],
+      "comment": "Documentation and prose - gemini-3.5-flash GA, stable"
+    },
+    "reasoning": {
+      "model": "github-copilot/claude-opus-4.8",
+      "variant": "max",
+      "fallback_models": [
+        {
+          "model": "github-copilot/gpt-5.5",
+          "variant": "high"
+        }
+      ],
+      "comment": "Complex reasoning tasks"
+    },
+    "coding": {
+      "model": "github-copilot/gpt-5.3-codex",
+      "fallback_models": [
+        {
+          "model": "github-copilot/claude-sonnet-4.6"
+        },
+        {
+          "model": "github-copilot/gpt-5.5",
+          "variant": "medium"
+        }
+      ],
+      "comment": "Code-specialized Codex model, Sonnet as fallback"
+    },
+    "fast": {
+      "model": "github-copilot/gpt-5.4-mini",
+      "fallback_models": [
+        {
+          "model": "github-copilot/gemini-3.5-flash"
+        }
+      ],
+      "comment": "Quick operations - flash GA as fallback"
+    }
+  },
+  "team_mode": {
+    "enabled": true,
+    "max_parallel_members": 4,
+    "tmux_visualization": true
+  },
+  "background_task": {
+    "defaultConcurrency": 8,
+    "staleTimeoutMs": 180000
+  },
+  "experimental": {
+    "task_system": true,
+    "aggressive_truncation": true
+  }
+}
