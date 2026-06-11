@@ -77,15 +77,252 @@ def format_duration(seconds):
 
 
 def cmd_default():
-    print("TODO: default mode")
+    db = get_db()
+    now_ms = int(time.time() * 1000)
+    seven_days_ms = now_ms - (7 * 24 * 3600 * 1000)
+
+    # --- Totals ---
+    row = db.execute("""
+        SELECT COUNT(*), ROUND(SUM(cost), 2),
+               SUM(tokens_input), SUM(tokens_output),
+               SUM(tokens_reasoning), SUM(tokens_cache_read)
+        FROM session WHERE time_created >= ?
+    """, (seven_days_ms,)).fetchone()
+    db.close()
+
+    total_sessions, total_cost, tok_in, tok_out, tok_reasoning, tok_cache = row
+    if total_sessions == 0:
+        print("No sessions in the last 7 days.")
+        return
+
+    # Re-open for remaining queries
+    db = get_db()
+    total_cost = total_cost or 0.0
+    tok_in = tok_in or 0
+    tok_out = tok_out or 0
+    tok_reasoning = tok_reasoning or 0
+    tok_cache = tok_cache or 0
+    daily_avg = total_cost / 7
+
+    cache_hit = tok_cache / (tok_in + tok_cache) * 100 if (tok_in + tok_cache) > 0 else 0
+
+    start_date = datetime.fromtimestamp(seven_days_ms / 1000).strftime("%b %d")
+    end_date = datetime.now().strftime("%b %d")
+
+    # --- Header ---
+    print()
+    print(f"  {WHITE}OMO STATS{RESET} — {start_date} → {end_date}  (7 days)")
+    print(f"  {'━' * 45}")
+    print()
+    print(f"  COST    {GREEN}{format_cost(total_cost)} total{RESET}   {format_cost(daily_avg)}/day avg   {total_sessions} sessions")
+    print(f"  TOKENS  {format_tokens(tok_in)} in   {format_tokens(tok_out)} out   {format_tokens(tok_reasoning)} reasoning")
+    print(f"  CACHE   {cache_hit:.1f}% hit rate")
+
+    # --- By Agent ---
+    agent_rows = db.execute("""
+        SELECT COALESCE(agent, '(unknown)') as ag,
+               COUNT(*) as cnt,
+               ROUND(SUM(cost), 2) as total,
+               ROUND(SUM(cost) / COUNT(*), 2) as per_sess,
+               SUM(tokens_input + tokens_output) as tokens
+        FROM session WHERE time_created >= ?
+        GROUP BY ag ORDER BY total DESC
+    """, (seven_days_ms,)).fetchall()
+
+    if agent_rows:
+        print()
+        print(f"  {WHITE}─── By Agent {'─' * 32}{RESET}")
+        print()
+        max_agent = max(len(r[0]) for r in agent_rows)
+        print(f"  {'AGENT':<{max_agent}}   {'SESSIONS':>8}   {'COST':>8}   {'$/SESS':>7}   TOKENS")
+        for ag, cnt, total, per_sess, tokens in agent_rows:
+            print(f"  {ORANGE}{ag:<{max_agent}}{RESET}   {cnt:>8}   {GREEN}{format_cost(total):>8}{RESET}   {format_cost(per_sess):>7}   {format_tokens(tokens or 0)}")
+
+    # --- By Model ---
+    model_rows = db.execute("""
+        SELECT COALESCE(json_extract(model, '$.id'), '(unknown)') as mdl,
+               COUNT(*) as cnt,
+               ROUND(SUM(cost), 2) as total
+        FROM session WHERE time_created >= ?
+        GROUP BY mdl ORDER BY total DESC
+    """, (seven_days_ms,)).fetchall()
+
+    if model_rows:
+        print()
+        print(f"  {WHITE}─── By Model {'─' * 32}{RESET}")
+        print()
+        top5 = model_rows[:5]
+        other = model_rows[5:]
+        max_model = max(len(r[0]) for r in top5) if top5 else 10
+        max_cost = top5[0][2] if top5 else 1
+        print(f"  {'MODEL':<{max_model}}   {'SESSIONS':>8}   {'COST':>8}   {'':20}   PCT")
+        for mdl, cnt, total in top5:
+            pct = total / total_cost * 100 if total_cost > 0 else 0
+            b = bar(total, max_cost)
+            print(f"  {ORANGE}{mdl:<{max_model}}{RESET}   {cnt:>8}   {GREEN}{format_cost(total):>8}{RESET}   {b}   {pct:.0f}%")
+        if other:
+            other_cost = sum(r[2] for r in other)
+            other_pct = other_cost / total_cost * 100 if total_cost > 0 else 0
+            other_cnt = sum(r[1] for r in other)
+            print(f"  {'other (' + str(len(other)) + ')':<{max_model}}   {other_cnt:>8}   {format_cost(other_cost):>8}   {'':20}   {other_pct:.0f}%")
+
+    # --- Daily ---
+    daily_rows = db.execute("""
+        SELECT date(time_created/1000, 'unixepoch', 'localtime') as day,
+               ROUND(SUM(cost), 2) as daily_cost
+        FROM session WHERE time_created >= ?
+        GROUP BY day ORDER BY day DESC
+    """, (seven_days_ms,)).fetchall()
+
+    if daily_rows:
+        print()
+        print(f"  {WHITE}─── Daily {'─' * 36}{RESET}")
+        print()
+        max_day_cost = max(r[1] for r in daily_rows) if daily_rows else 1
+        peak_day = max(daily_rows, key=lambda r: r[1])[0] if daily_rows else None
+        for day_str, daily_cost in daily_rows:
+            # Parse date for nice label: "2026-06-11" → "Jun 11"
+            try:
+                dt = datetime.strptime(day_str, "%Y-%m-%d")
+                label = dt.strftime("%b %d")
+            except ValueError:
+                label = day_str
+            b = bar(daily_cost, max_day_cost, width=34)
+            peak_marker = "  ← peak" if day_str == peak_day and len(daily_rows) > 1 else ""
+            print(f"  {WHITE}{label}{RESET}  {GREEN}{b}{RESET}  {format_cost(daily_cost)}{ORANGE}{peak_marker}{RESET}")
+
+    # --- Top Projects ---
+    project_rows = db.execute("""
+        SELECT COALESCE(directory, '(no project)') as dir,
+               COUNT(*) as cnt,
+               ROUND(SUM(cost), 2) as total
+        FROM session WHERE time_created >= ?
+        GROUP BY dir ORDER BY total DESC
+    """, (seven_days_ms,)).fetchall()
+
+    if project_rows:
+        print()
+        print(f"  {WHITE}─── Top Projects {'─' * 28}{RESET}")
+        print()
+        top4 = project_rows[:4]
+        other_proj = project_rows[4:]
+        max_dir = max(len(short_dir(r[0])) for r in top4) if top4 else 20
+        print(f"  {'DIRECTORY':<{max_dir}}   {'SESSIONS':>8}   COST")
+        for proj_dir, cnt, total in top4:
+            print(f"  {GREEN}{short_dir(proj_dir):<{max_dir}}{RESET}   {cnt:>8}   {format_cost(total)}")
+        if other_proj:
+            other_cost = sum(r[2] for r in other_proj)
+            other_cnt = sum(r[1] for r in other_proj)
+            print(f"  {'other (' + str(len(other_proj)) + ')':<{max_dir}}   {other_cnt:>8}   {format_cost(other_cost)}")
+    print()
+    db.close()
 
 
 def cmd_today():
-    print("TODO: today mode")
+    db = get_db()
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    row = db.execute("""
+        SELECT COUNT(*), ROUND(SUM(cost), 2),
+               SUM(tokens_input + tokens_output)
+        FROM session
+        WHERE date(time_created/1000, 'unixepoch', 'localtime') = ?
+    """, (today,)).fetchone()
+
+    total_sessions, total_cost, total_tokens = row
+    if total_sessions == 0:
+        print("No sessions today.")
+        db.close()
+        return
+
+    total_cost = total_cost or 0.0
+    total_tokens = total_tokens or 0
+
+    label = datetime.now().strftime("%b %d")
+    print()
+    print(f"  {WHITE}OMO STATS{RESET} — {label}")
+    print(f"  {'━' * 30}")
+    print()
+    print(f"  COST    {GREEN}{format_cost(total_cost)}{RESET}    {total_sessions} sessions    {format_tokens(total_tokens)} tokens")
+
+    # By agent (today only) — simplified: AGENT, COST, MODEL USED
+    agent_rows = db.execute("""
+        SELECT COALESCE(agent, '(unknown)') as ag,
+               ROUND(SUM(cost), 2) as total,
+               COALESCE(json_extract(model, '$.id'), '(unknown)') as mdl
+        FROM session
+        WHERE date(time_created/1000, 'unixepoch', 'localtime') = ?
+        GROUP BY ag, mdl ORDER BY total DESC
+    """, (today,)).fetchall()
+
+    if agent_rows:
+        print()
+        max_agent = max(len(r[0]) for r in agent_rows)
+        max_model = max(len(r[2]) for r in agent_rows)
+        print(f"  {'AGENT':<{max_agent}}   {'COST':>8}   MODEL")
+        for ag, total, mdl in agent_rows:
+            print(f"  {ORANGE}{ag:<{max_agent}}{RESET}   {GREEN}{format_cost(total):>8}{RESET}   {mdl}")
+    print()
+    db.close()
 
 
 def cmd_session(session_id):
-    print(f"TODO: session mode for {session_id}")
+    db = get_db()
+
+    row = db.execute("""
+        SELECT id, title, cost, tokens_input, tokens_output,
+               agent, model, time_created, time_updated
+        FROM session WHERE id = ?
+    """, (session_id,)).fetchone()
+
+    if not row:
+        print(f"Session not found: {session_id}", file=sys.stderr)
+        db.close()
+        sys.exit(1)
+
+    sid, title, cost, tok_in, tok_out, agent, model_json, t_created, t_updated = row
+    cost = cost or 0.0
+    tok_in = tok_in or 0
+    tok_out = tok_out or 0
+    title_clean = (title or "(no title)").replace("\n", " ")[:60]
+    try:
+        model_name = json.loads(model_json).get("id", "(unknown)") if model_json else "(unknown)"
+    except (json.JSONDecodeError, TypeError):
+        model_name = "(unknown)"
+    agent_name = agent or "(unknown)"
+    duration_s = (t_updated - t_created) / 1000 if t_updated and t_created else 0
+    total_tokens = tok_in + tok_out
+
+    print()
+    print(f"  {WHITE}SESSION{RESET} — \"{title_clean}\"   {GREEN}{format_cost(cost)}{RESET}   {format_tokens(total_tokens)} tokens   {format_duration(duration_s)}")
+    print(f"  {'━' * 60}")
+    print()
+
+    # Fetch children
+    children = db.execute("""
+        SELECT id, agent, model, cost, tokens_input, tokens_output
+        FROM session WHERE parent_id = ?
+        ORDER BY time_created ASC
+    """, (session_id,)).fetchall()
+
+    # Render parent
+    print(f"  PARENT    {ORANGE}{agent_name}{RESET} ({model_name}){' ' * max(0, 35 - len(agent_name) - len(model_name))}  {GREEN}{format_cost(cost)}{RESET}")
+
+    for i, (child_id, c_agent, c_model_json, c_cost, c_tok_in, c_tok_out) in enumerate(children):
+        c_cost = c_cost or 0.0
+        c_agent = c_agent or "(unknown)"
+        try:
+            c_model = json.loads(c_model_json).get("id", "(unknown)") if c_model_json else "(unknown)"
+        except (json.JSONDecodeError, TypeError):
+            c_model = "(unknown)"
+        connector = "└─" if i == len(children) - 1 else "├─"
+        padding = max(0, 35 - len(c_agent) - len(c_model))
+        print(f"  {connector} child  {ORANGE}{c_agent}{RESET} ({c_model}){' ' * padding}  {GREEN}{format_cost(c_cost)}{RESET}")
+
+    if not children:
+        print(f"  (no child sessions)")
+    print()
+    db.close()
 
 
 parser = argparse.ArgumentParser(prog="omo_stats", description="OpenCode usage statistics")
