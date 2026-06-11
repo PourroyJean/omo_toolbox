@@ -110,12 +110,20 @@ def cmd_default():
     end_date = datetime.now().strftime("%b %d")
 
     # --- Header ---
+    W = 69     # inner width — matches By Agent table below
+    COL_W = 23  # per-column width for 3-column stats rows
     print()
-    print(f"  {WHITE}OMO STATS{RESET} — {start_date} → {end_date}  (7 days)")
-    print(f"  {'━' * 45}")
+    date_str = f"{start_date} → {end_date}  ·  7 days"
+    gap = max(1, W - len("OMO STATS") - len(date_str))
+    print(f"  {WHITE}OMO STATS{RESET}{' ' * gap}{date_str}")
+    print(f"  {'━' * W}")
     print()
-    print(f"  COST    {GREEN}{format_cost(total_cost)} total{RESET}   {format_cost(daily_avg)}/day avg   {total_sessions} sessions")
-    print(f"  TOKENS  {format_tokens(tok_in)} in   {format_tokens(tok_out)} out   {format_tokens(tok_reasoning)} reasoning")
+    cost_vis = f"{format_cost(total_cost)} total"
+    daily_vis = f"{format_cost(daily_avg)}/day avg"
+    print(f"  COST    {GREEN}{cost_vis}{RESET}{' ' * max(0, COL_W - len(cost_vis))}{daily_vis}{' ' * max(0, COL_W - len(daily_vis))}{total_sessions} sessions")
+    tok_in_vis = f"{format_tokens(tok_in)} in"
+    tok_out_vis = f"{format_tokens(tok_out)} out"
+    print(f"  TOKENS  {tok_in_vis}{' ' * max(0, COL_W - len(tok_in_vis))}{tok_out_vis}{' ' * max(0, COL_W - len(tok_out_vis))}{format_tokens(tok_reasoning)} reasoning")
     print(f"  CACHE   {cache_hit:.1f}% hit rate")
 
     # --- By Agent ---
